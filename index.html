@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Консультативное заключение</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .field { @apply mb-5; }
+    .label { @apply block text-sm font-medium text-gray-700 mb-1; }
+    textarea, input { @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500; }
+    .ai-btn { @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-2xl font-medium hover:scale-105 transition; }
+    .status { @apply text-sm font-medium px-4 py-2 rounded-xl; }
+    .ok { @apply bg-green-100 text-green-700; }
+    .bad { @apply bg-red-100 text-red-700; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div class="max-w-4xl mx-auto p-6">
+
+  <!-- Выбор клиники -->
+  <div class="mb-8">
+    <label class="block text-sm font-medium text-gray-600 mb-2">Клиника</label>
+    <select id="clinicSelect" onchange="changeClinic()" class="w-full px-4 py-3 border border-gray-300 rounded-2xl text-lg">
+      <option value="0">Клиника "Здоровье Плюс" — Москва</option>
+      <option value="1">Медицинский центр "Мир" — Санкт-Петербург</option>
+      <option value="2">Клиника "Эксперт" — Екатеринбург</option>
+    </select>
+  </div>
+
+  <!-- Шапка заключения -->
+  <div id="header" class="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 mb-8 flex items-center gap-6">
+    <img id="logo" src="https://via.placeholder.com/120x80/4f46e5/ffffff?text=ЛОГО" alt="Логотип" class="h-20"/>
+    <div>
+      <h1 id="clinicName" class="text-3xl font-bold text-gray-900">Клиника "Здоровье Плюс"</h1>
+      <p id="clinicAddress" class="text-gray-600">Москва, ул. Тверская, 15, стр. 2</p>
+      <p id="clinicContacts" class="text-gray-500">+7 (495) 123-45-67 • @zdorovieplus</p>
+    </div>
+    <div class="ml-auto text-right">
+      <p class="text-sm text-gray-500">Дата приёма</p>
+      <p id="visitDate" class="text-2xl font-semibold">14 февраля 2026</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
+
+    <h2 class="text-2xl font-bold mb-6">Консультативное заключение</h2>
+
+    <!-- Данные пациента -->
+    <div class="grid grid-cols-2 gap-6 mb-8">
+      <div>
+        <label class="label">ФИО пациента</label>
+        <input id="patientFio" type="text" placeholder="Иванов Иван Иванович" class="text-lg"/>
+      </div>
+      <div>
+        <label class="label">Дата рождения</label>
+        <input id="patientBirth" type="date" class="text-lg"/>
+      </div>
+    </div>
+
+    <!-- Жалобы -->
+    <div class="mb-8">
+      <label class="label">Жалобы и анамнез</label>
+      <textarea id="complaints" rows="4" placeholder="Основные жалобы..."></textarea>
+    </div>
+
+    <!-- Осмотр -->
+    <div class="mb-8">
+      <label class="label">Объективные данные и осмотр</label>
+      <textarea id="objective" rows="5" placeholder="Состояние кожи, слизистых, лимфоузлов..."></textarea>
+    </div>
+
+    <!-- Диагноз -->
+    <div class="mb-8">
+      <label class="label">Диагноз</label>
+      <input id="diagnosis" type="text" placeholder="L20.8 Атопический дерматит" class="text-lg"/>
+    </div>
+
+    <!-- Рекомендации -->
+    <div class="mb-8">
+      <label class="label">Рекомендации</label>
+      <textarea id="recommendations" rows="8" placeholder="Лечение, обследования, режим..."></textarea>
+      
+      <button onclick="improveWithAI()" class="ai-btn mt-4">
+        ✨ Улучшить рекомендации с помощью ИИ
+      </button>
+    </div>
+
+    <!-- Кнопки -->
+    <div class="flex gap-4">
+      <button onclick="generatePDF()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-semibold text-lg hover:bg-blue-700">
+        Скачать PDF
+      </button>
+      <button onclick="clearForm()" class="flex-1 border border-gray-300 py-4 rounded-2xl font-medium">
+        Очистить форму
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Данные клиник
+const clinics = [
+  {
+    name: "Клиника \"Здоровье Плюс\"",
+    address: "Москва, ул. Тверская, 15, стр. 2",
+    phone: "+7 (495) 123-45-67",
+    logo: "https://via.placeholder.com/120x80/4f46e5/ffffff?text=ЗДОРОВЬЕ"
+  },
+  {
+    name: "Медицинский центр \"Мир\"",
+    address: "Санкт-Петербург, Невский пр., 45",
+    phone: "+7 (812) 555-33-22",
+    logo: "https://via.placeholder.com/120x80/22c55e/ffffff?text=МИР"
+  },
+  {
+    name: "Клиника \"Эксперт\"",
+    address: "Екатеринбург, ул. Малышева, 101",
+    phone: "+7 (343) 222-11-00",
+    logo: "https://via.placeholder.com/120x80/ea580c/ffffff?text=ЭКСПЕРТ"
+  }
+];
+
+function changeClinic() {
+  const idx = document.getElementById("clinicSelect").value;
+  const c = clinics[idx];
+  
+  document.getElementById("clinicName").textContent = c.name;
+  document.getElementById("clinicAddress").textContent = c.address;
+  document.getElementById("clinicContacts").textContent = c.phone;
+  document.getElementById("logo").src = c.logo;
+}
+
+// Симуляция ИИ-улучшения
+async function improveWithAI() {
+  const text = document.getElementById("recommendations").value.trim();
+  if (!text) {
+    alert("Сначала напишите рекомендации");
+    return;
+  }
+
+  const improved = "ИИ-улучшенная версия:\n\n" + 
+    text.replace(/лечить/g, "рекомендовано проводить терапию").replace(/принимать/g, "назначить приём") + 
+    "\n\nДополнительно рекомендовано:\n" +
+    "• Контрольные анализы через 14 дней\n" +
+    "• Избегать раздражающих факторов\n" +
+    "• Повторный приём через 3 недели";
+
+  if (confirm("ИИ предлагает улучшенный текст:\n\n" + improved + "\n\nПрименить?")) {
+    document.getElementById("recommendations").value = improved;
+  }
+}
+
+// Генерация PDF
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text(document.getElementById("clinicName").textContent, 20, 20);
+  
+  doc.setFontSize(12);
+  doc.text(document.getElementById("clinicAddress").textContent, 20, 30);
+  doc.text("Дата: " + new Date().toLocaleDateString('ru-RU'), 20, 45);
+
+  doc.setFontSize(14);
+  doc.text("ФИО пациента: " + (document.getElementById("patientFio").value || "—"), 20, 65);
+  doc.text("Диагноз: " + (document.getElementById("diagnosis").value || "—"), 20, 75);
+  
+  doc.setFontSize(12);
+  doc.text("Рекомендации:", 20, 95);
+  const rec = document.getElementById("recommendations").value || "Рекомендации не указаны";
+  doc.text(rec.split('\n'), 20, 105, { maxWidth: 170 });
+
+  doc.save("Консультативное_заключение.pdf");
+}
+
+function clearForm() {
+  if (confirm("Очистить всю форму?")) {
+    document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+  }
+}
+
+// Инициализация
+changeClinic();
+</script>
+
+</body>
+</html>
